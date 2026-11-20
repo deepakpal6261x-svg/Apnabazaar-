@@ -1,3 +1,4 @@
+
 name: Build ApnaBazaar APK
 
 on:
@@ -44,7 +45,14 @@ jobs:
 
       - name: Prepare Bubblewrap TWA project
         run: |
-          mkdir -p twa
+          mkdir -p twa "$HOME/.bubblewrap"
+          cat << EOF > "$HOME/.bubblewrap/config.json"
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_SDK_ROOT"
+          }
+          EOF
+
           cat << 'EOF' > twa/twa-manifest.json
           {
             "packageId": "com.apnabazaar.app",
@@ -101,12 +109,12 @@ jobs:
             -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
 
           cd twa
-          printf "n\n%s\n%s\nY\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
+          (echo "n"; echo "$JAVA_HOME"; echo "$ANDROID_SDK_ROOT"; yes "apnabazaar123") | npx --yes @bubblewrap/cli update --skipPwaValidation || true
 
       - name: Build Android APK
         run: |
           cd twa
-          printf "n\n%s\n%s\nY\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli build --skipPwaValidation
+          (echo "n"; echo "$JAVA_HOME"; echo "$ANDROID_SDK_ROOT"; yes "apnabazaar123") | npx --yes @bubblewrap/cli build --skipPwaValidation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
