@@ -10,6 +10,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,31 +23,63 @@ jobs:
       - name: Setup Java 17
         uses: actions/setup-java@v5
         with:
-          distribution: "temurin"
+          distribution: temurin
           java-version: "17"
 
-      - name: Setup Android SDK & Build Tools
+      - name: Setup Android SDK
         run: |
           ANDROID_SDK_ROOT="$HOME/android-sdk"
+
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+
+          curl -fsSL \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -o cmdline-tools.zip
+
           unzip -q cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" \
+             "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+
           rm cmdline-tools.zip
 
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
 
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$ANDROID_SDK_ROOT" \
             "platform-tools" \
             "platforms;android-34" \
             "build-tools;34.0.0"
 
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$ANDROID_SDK_ROOT" --licenses
+
+      - name: Configure Bubblewrap
+        run: |
+          mkdir -p "$HOME/.bubblewrap"
+
+          cat > "$HOME/.bubblewrap/config.json" <<EOF
+          {
+            "jdkPath": "$JAVA_HOME",
+            "androidSdkPath": "$ANDROID_SDK_ROOT"
+          }
+          EOF
+
+          cat "$HOME/.bubblewrap/config.json"
+
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
       - name: Prepare Bubblewrap TWA project
         run: |
           mkdir -p twa
-          cat << 'EOF' > twa/twa-manifest.json
+
+          cat > twa/twa-manifest.json <<'EOF'
           {
             "packageId": "com.apnabazaar.app",
             "host": "apnabazaar-plwb.vercel.app",
@@ -101,18 +134,25 @@ jobs:
             -keypass apnabazaar123 \
             -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
 
-          cd twa
-          printf "n\n%s\n%s\nY\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
-
-      - name: Build Android APK
+      - name: Update Bubblewrap project
         run: |
           cd twa
-          printf "n\n%s\n%s\nY\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli build --skipPwaValidation
+          npx --yes @bubblewrap/cli update --skipVersionUpgrade
+
+      - name: Build Android APK
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: apnabazaar123
+          BUBBLEWRAP_KEY_PASSWORD: apnabazaar123
+        run: |
+          cd twa
+          npx --yes @bubblewrap/cli build --skipPwaValidation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ApnaBazaar-APK
           path: |
+            twa/*.apk
             twa/app/build/outputs/apk/release/*.apk
             twa/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
