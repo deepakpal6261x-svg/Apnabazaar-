@@ -1,0 +1,319 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Zero-lookup admin check safe for allow list rules (prevents O(n) exists() reads)
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'deepakpal6261x@gmail.com';
+    }
+
+    // Full admin check for single-document operations
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'mobile', 'role', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'mobile', 'role', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.mobile is string && data.mobile.size() >= 10 && data.mobile.size() <= 15 && data.mobile.matches('^[0-9+\\-\\s]+$')
+        && data.role is string && data.role in ['customer', 'vendor', 'driver']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidListing(data) {
+      return data.keys().hasAll([
+          'ownerUid', 'category', 'nameHi', 'nameEn', 'ownerName',
+          'areaHi', 'areaEn', 'businessPhone', 'isAvailable', 'isPublished',
+          'subscriptionTier', 'subscriptionStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerUid', 'category', 'nameHi', 'nameEn', 'ownerName',
+          'areaHi', 'areaEn', 'businessPhone', 'upiId', 'qrImageUrl',
+          'isAvailable', 'isPublished', 'vehicleType', 'baseFare',
+          'currentToken', 'waitingCount', 'subscriptionTier', 'subscriptionStatus',
+          'items', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128
+        && data.category is string && data.category in ['auto', 'sabji', 'kirana', 'csc', 'salon', 'clinic', 'showroom']
+        && data.nameHi is string && data.nameHi.size() >= 1 && data.nameHi.size() <= 120
+        && data.nameEn is string && data.nameEn.size() >= 1 && data.nameEn.size() <= 120
+        && data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80
+        && data.areaHi is string && data.areaHi.size() >= 1 && data.areaHi.size() <= 120
+        && data.areaEn is string && data.areaEn.size() >= 1 && data.areaEn.size() <= 120
+        && data.businessPhone is string && data.businessPhone.size() >= 10 && data.businessPhone.size() <= 15
+        && (!('upiId' in data) || (data.upiId is string && data.upiId.size() <= 100))
+        && (!('qrImageUrl' in data) || (data.qrImageUrl is string && data.qrImageUrl.size() <= 450000))
+        && data.isAvailable is bool
+        && data.isPublished is bool
+        && (!('vehicleType' in data) || (data.vehicleType is string && data.vehicleType.size() <= 40))
+        && (!('baseFare' in data) || (data.baseFare is number && data.baseFare >= 0 && data.baseFare <= 50000))
+        && (!('currentToken' in data) || (data.currentToken is number && data.currentToken >= 0 && data.currentToken <= 9999))
+        && (!('waitingCount' in data) || (data.waitingCount is number && data.waitingCount >= 0 && data.waitingCount <= 999))
+        && data.subscriptionTier is string && data.subscriptionTier in ['basic_99', 'pro_299', 'showroom_599']
+        && data.subscriptionStatus is string && data.subscriptionStatus in ['active', 'pending', 'expired']
+        && (!('items' in data) || (data.items is list && data.items.size() <= 40 && (data.items.size() == 0 || data.items[0] is map)))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll([
+          'customerUid', 'customerName', 'customerMobile', 'listingId', 'vendorUid',
+          'listingNameHi', 'bookingType', 'summaryHi', 'deliveryMode',
+          'paymentMethod', 'totalAmount', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'customerUid', 'customerName', 'customerMobile', 'listingId', 'vendorUid',
+          'listingNameHi', 'bookingType', 'summaryHi', 'tokenNumber', 'slotTime',
+          'pickup', 'drop', 'deliveryMode', 'paymentMethod', 'totalAmount',
+          'status', 'createdAt', 'updatedAt'
+        ])
+        && data.customerUid is string && data.customerUid.size() >= 1 && data.customerUid.size() <= 128
+        && data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100
+        && data.customerMobile is string && data.customerMobile.size() >= 10 && data.customerMobile.size() <= 15
+        && isValidId(data.listingId)
+        && data.vendorUid is string && data.vendorUid.size() >= 1 && data.vendorUid.size() <= 128
+        && data.listingNameHi is string && data.listingNameHi.size() >= 1 && data.listingNameHi.size() <= 120
+        && data.bookingType is string && data.bookingType in ['auto', 'queue', 'order']
+        && data.summaryHi is string && data.summaryHi.size() >= 1 && data.summaryHi.size() <= 300
+        && (!('tokenNumber' in data) || (data.tokenNumber is string && data.tokenNumber.size() <= 30))
+        && (!('slotTime' in data) || (data.slotTime is string && data.slotTime.size() <= 40))
+        && (!('pickup' in data) || (data.pickup is string && data.pickup.size() <= 150))
+        && (!('drop' in data) || (data.drop is string && data.drop.size() <= 150))
+        && data.deliveryMode is string && data.deliveryMode in ['delivery', 'pickup', 'onsite']
+        && data.paymentMethod is string && data.paymentMethod in ['upi', 'cash']
+        && data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1000000
+        && data.status is string && data.status in ['confirmed', 'in_progress', 'completed', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSubscription(data) {
+      return data.keys().hasAll([
+          'vendorUid', 'listingId', 'vendorName', 'vendorMobile',
+          'planId', 'amount', 'utrNumber', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'vendorUid', 'listingId', 'vendorName', 'vendorMobile',
+          'planId', 'amount', 'utrNumber', 'screenshotUrl', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.vendorUid is string && data.vendorUid.size() >= 1 && data.vendorUid.size() <= 128
+        && isValidId(data.listingId)
+        && data.vendorName is string && data.vendorName.size() >= 1 && data.vendorName.size() <= 100
+        && data.vendorMobile is string && data.vendorMobile.size() >= 10 && data.vendorMobile.size() <= 15
+        && data.planId is string && data.planId in ['basic_99', 'pro_299', 'showroom_599']
+        && data.amount is number && data.amount in [99, 299, 599]
+        && data.utrNumber is string && data.utrNumber.size() >= 4 && data.utrNumber.size() <= 64
+        && (!('screenshotUrl' in data) || (data.screenshotUrl is string && data.screenshotUrl.size() <= 450000))
+        && data.status is string && data.status in ['pending', 'approved', 'rejected']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidAdminUpiConfig(data) {
+      return data.keys().hasAll(['adminName', 'upiId', 'updatedAt'])
+        && data.keys().hasOnly(['adminName', 'upiId', 'qrImageUrl', 'updatedAt'])
+        && data.adminName is string && data.adminName.size() >= 1 && data.adminName.size() <= 100
+        && data.upiId is string && data.upiId.size() >= 3 && data.upiId.size() <= 100
+        && (!('qrImageUrl' in data) || (data.qrImageUrl is string && data.qrImageUrl.size() <= 450000))
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // 1. Admins registry
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isBootstrappedAdmin());
+      allow list: if false;
+      allow create, update, delete: if false;
+    }
+
+    // 2. Private user profiles (PII strictly isolated to owner or admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'mobile', 'role', 'updatedAt']))
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // 3. Public local marketplace listings
+    match /listings/{listingId} {
+      allow get: if isValidId(listingId) && (
+        existing().isPublished == true ||
+        (isSignedIn() && existing().ownerUid == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if resource.data.isPublished == true ||
+        (isSignedIn() && resource.data.ownerUid == request.auth.uid) ||
+        isBootstrappedAdmin();
+      allow create: if isVerifiedUser()
+        && isValidId(listingId)
+        && isValidListing(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (incoming().ownerUid == request.auth.uid && incoming().subscriptionStatus == 'pending')
+        );
+      allow update: if isVerifiedUser()
+        && isValidId(listingId)
+        && isValidListing(incoming())
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().ownerUid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'nameHi', 'nameEn', 'ownerName', 'areaHi', 'areaEn', 'businessPhone',
+              'upiId', 'qrImageUrl', 'isAvailable', 'isPublished', 'vehicleType',
+              'baseFare', 'currentToken', 'waitingCount', 'items', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isVerifiedUser() && isValidId(listingId) && (existing().ownerUid == request.auth.uid || isAdmin());
+    }
+
+    // 4. Bookings (Auto rides, Smart Queue tokens, Shop orders)
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId) && (
+        existing().customerUid == request.auth.uid ||
+        existing().vendorUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.customerUid == request.auth.uid ||
+        resource.data.vendorUid == request.auth.uid ||
+        isBootstrappedAdmin()
+      );
+      allow create: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().customerUid == request.auth.uid
+        && incoming().status == 'confirmed'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/listings/$(incoming().listingId));
+      allow update: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().customerUid == existing().customerUid
+        && incoming().vendorUid == existing().vendorUid
+        && incoming().listingId == existing().listingId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().status in ['confirmed', 'in_progress'] &&
+            (
+              // Action: Vendor advances booking status
+              (existing().vendorUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+              // Action: Customer cancels active booking
+              (existing().customerUid == request.auth.uid && incoming().status == 'cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+            )
+          )
+        );
+      allow delete: if isValidId(bookingId) && isAdmin();
+    }
+
+    // 5. Vendor monthly UPI subscriptions (paid to Admin QR)
+    match /subscriptions/{subscriptionId} {
+      allow get: if isSignedIn() && isValidId(subscriptionId) && (
+        existing().vendorUid == request.auth.uid || isAdmin()
+      );
+      allow list: if isSignedIn() && (
+        resource.data.vendorUid == request.auth.uid || isBootstrappedAdmin()
+      );
+      allow create: if isVerifiedUser()
+        && isValidId(subscriptionId)
+        && isValidSubscription(incoming())
+        && incoming().vendorUid == request.auth.uid
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/listings/$(incoming().listingId));
+      allow update: if isVerifiedUser()
+        && isValidId(subscriptionId)
+        && isValidSubscription(incoming())
+        && incoming().vendorUid == existing().vendorUid
+        && incoming().listingId == existing().listingId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin()
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if isValidId(subscriptionId) && isAdmin();
+    }
+
+    // 6. Super Admin UPI QR Config
+    match /platformConfig/{configId} {
+      allow get: if isValidId(configId) && configId == 'admin_upi';
+      allow list: if false;
+      allow create, update: if isValidId(configId)
+        && configId == 'admin_upi'
+        && isAdmin()
+        && isValidAdminUpiConfig(incoming())
+        && incoming().updatedAt == request.time;
+      allow delete: if false;
+    }
+
+    // 7. Connection test probe
+    match /test/connection {
+      allow get: if true;
+      allow list, write: if false;
+    }
+  }
+}
