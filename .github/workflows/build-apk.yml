@@ -1,0 +1,66 @@
+name: Build ApnaBazaar APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Initialize Bubblewrap TWA project
+        run: |
+          mkdir -p twa
+          cd twa
+          npx --yes @bubblewrap/cli init \
+            --manifest https://apnabazaar-plwb.vercel.app/manifest.webmanifest \
+            --packageName com.apnabazaar.app \
+            --name "ApnaBazaar" \
+            --launcherName "ApnaBazaar" \
+            --displayMode standalone \
+            --orientation portrait \
+            --themeColor "#16a34a" \
+            --backgroundColor "#ffffff" \
+            --startUrl / \
+            --iconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
+            --maskableIconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
+            --monochromeIconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
+            --signingKeyPath ./android.keystore \
+            --signingKeyAlias apnabazaar \
+            --signingKeyPassword apnabazaar123 \
+            --keyPassword apnabazaar123 \
+            --appVersionName "1.0.0" \
+            --appVersionCode 1 \
+            --yes || true
+
+      - name: Build Android APK
+        run: |
+          cd twa
+          npx --yes @bubblewrap/cli build
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApnaBazaar-APK
+          path: |
+            twa/app/build/outputs/apk/release/*.apk
+            twa/app/build/outputs/apk/debug/*.apk
