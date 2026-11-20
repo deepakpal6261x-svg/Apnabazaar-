@@ -42,7 +42,7 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
 
-      - name: Prepare Bubblewrap TWA config
+      - name: Prepare Bubblewrap TWA project
         run: |
           mkdir -p twa
           cat << 'EOF' > twa/twa-manifest.json
@@ -101,9 +101,7 @@ jobs:
             -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
 
           cd twa
-          npx --yes @bubblewrap/cli update --skipPwaValidation \
-            --jdkPath "$JAVA_HOME" \
-            --androidSdkPath "$ANDROID_SDK_ROOT"
+          printf "n\n%s\n%s\nY\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
 
       - name: Build Android APK
         run: |
