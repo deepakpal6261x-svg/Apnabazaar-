@@ -42,34 +42,73 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
 
-      - name: Initialize Bubblewrap TWA project
+      - name: Prepare Bubblewrap TWA config
         run: |
           mkdir -p twa
+          cat << 'EOF' > twa/twa-manifest.json
+          {
+            "packageId": "com.apnabazaar.app",
+            "host": "apnabazaar-plwb.vercel.app",
+            "name": "ApnaBazaar",
+            "launcherName": "ApnaBazaar",
+            "display": "standalone",
+            "orientation": "portrait",
+            "themeColor": "#16a34a",
+            "themeColorDark": "#16a34a",
+            "navigationColor": "#ffffff",
+            "navigationColorDark": "#000000",
+            "navigationDividerColor": "#e5e7eb",
+            "navigationDividerColorDark": "#1f2937",
+            "backgroundColor": "#ffffff",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://apnabazaar-plwb.vercel.app/icon-512.png",
+            "maskableIconUrl": "https://apnabazaar-plwb.vercel.app/icon-512.png",
+            "monochromeIconUrl": "https://apnabazaar-plwb.vercel.app/icon-512.png",
+            "splashScreenFadeOutDuration": 300,
+            "signingKey": {
+              "path": "./android.keystore",
+              "alias": "apnabazaar"
+            },
+            "appVersionName": "1.0.0",
+            "appVersionCode": 1,
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://apnabazaar-plwb.vercel.app/manifest.webmanifest",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": {
+              "enabled": false
+            },
+            "enableSiteSettingsShortcut": true,
+            "isChromeOSOnly": false,
+            "isMetaQuest": false,
+            "fullScopeUrl": "https://apnabazaar-plwb.vercel.app/",
+            "minSdkVersion": 21,
+            "kotlinVersion": "1.9.22",
+            "targetSdkVersion": 34
+          }
+          EOF
+
+          keytool -genkeypair -v \
+            -keystore twa/android.keystore \
+            -alias apnabazaar \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass apnabazaar123 \
+            -keypass apnabazaar123 \
+            -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
+
           cd twa
-          printf "n\n" | npx --yes @bubblewrap/cli init \
-            --manifest https://apnabazaar-plwb.vercel.app/manifest.webmanifest \
-            --packageName com.apnabazaar.app \
-            --name "ApnaBazaar" \
-            --launcherName "ApnaBazaar" \
-            --displayMode standalone \
-            --orientation portrait \
-            --themeColor "#16a34a" \
-            --backgroundColor "#ffffff" \
-            --startUrl / \
-            --iconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
-            --maskableIconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
-            --monochromeIconUrl https://apnabazaar-plwb.vercel.app/icon-512.png \
-            --signingKeyPath ./android.keystore \
-            --signingKeyAlias apnabazaar \
-            --signingKeyPassword apnabazaar123 \
-            --keyPassword apnabazaar123 \
-            --appVersionName "1.0.0" \
-            --appVersionCode 1
+          npx --yes @bubblewrap/cli update --skipPwaValidation \
+            --jdkPath "$JAVA_HOME" \
+            --androidSdkPath "$ANDROID_SDK_ROOT"
 
       - name: Build Android APK
         run: |
           cd twa
-          printf "n\n" | npx --yes @bubblewrap/cli build
+          npx --yes @bubblewrap/cli build --skipPwaValidation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
