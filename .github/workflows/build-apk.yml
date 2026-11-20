@@ -109,12 +109,12 @@ jobs:
             -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
 
           cd twa
-          (echo "n"; echo "$JAVA_HOME"; echo "$ANDROID_SDK_ROOT"; yes "apnabazaar123") | npx --yes @bubblewrap/cli update --skipPwaValidation || true
+          printf "n\n%s\n%s\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
 
       - name: Build Android APK
         run: |
           cd twa
-          (echo "n"; echo "$JAVA_HOME"; echo "$ANDROID_SDK_ROOT"; yes "apnabazaar123") | npx --yes @bubblewrap/cli build --skipPwaValidation
+          printf "n\n%s\n%s\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli build --skipPwaValidation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
