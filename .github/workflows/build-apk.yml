@@ -46,7 +46,7 @@ jobs:
         run: |
           mkdir -p twa
           cd twa
-          npx --yes @bubblewrap/cli init \
+          printf "n\n" | npx --yes @bubblewrap/cli init \
             --manifest https://apnabazaar-plwb.vercel.app/manifest.webmanifest \
             --packageName com.apnabazaar.app \
             --name "ApnaBazaar" \
@@ -64,13 +64,12 @@ jobs:
             --signingKeyPassword apnabazaar123 \
             --keyPassword apnabazaar123 \
             --appVersionName "1.0.0" \
-            --appVersionCode 1 \
-            --yes
+            --appVersionCode 1
 
       - name: Build Android APK
         run: |
           cd twa
-          npx --yes @bubblewrap/cli build
+          printf "n\n" | npx --yes @bubblewrap/cli build
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
