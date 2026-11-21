@@ -1,28 +1,102 @@
-name: NodeJS with Webpack
+
+name: Build ApnaBazaar APK
 
 on:
+  workflow_dispatch:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-apk:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-
+    timeout-minutes: 25
     steps:
-    - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-    - name: Build
-      run: |
-        npm install
-        npx webpack
+      - name: Setup Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept Android SDK Licenses
+        run: |
+          set -e
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          mkdir -p "$SDK_ROOT/licenses"
+          yes | sdkmanager --sdk_root="$SDK_ROOT" --licenses >/dev/null 2>&1 || true
+
+      - name: Build Android APK
+        run: |
+          set -e
+          mkdir -p www
+          printf '<h1>ApnaBazaar</h1>\n' > www/index.html
+
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "ApnaBazaar" "com.apnabazaar.app" --web-dir=www
+          npx cap add android
+
+          cat << 'EOF' > capacitor.config.json
+          {
+            "appId": "com.apnabazaar.app",
+            "appName": "ApnaBazaar",
+            "webDir": "www",
+            "server": {
+              "url": "https://apnabazaar-plwb.vercel.app",
+              "cleartext": false
+            }
+          }
+          EOF
+
+          PKG_DIR="android/app/src/main/java/com/apnabazaar/app"
+          mkdir -p "$PKG_DIR"
+          cat << 'EOF' > "$PKG_DIR/MainActivity.java"
+          package com.apnabazaar.app;
+
+          import android.os.Bundle;
+          import android.webkit.WebView;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+            @Override
+            public void onCreate(Bundle savedInstanceState) {
+              super.onCreate(savedInstanceState);
+
+              getBridge().getWebView().post(() -> {
+                WebView webView = getBridge().getWebView();
+                if (webView != null) {
+                  webView.setLongClickable(false);
+                  webView.setHapticFeedbackEnabled(false);
+                  webView.setOnLongClickListener(v -> true);
+                  webView.evaluateJavascript(
+                    "(function() { var s = document.createElement('style'); s.innerHTML = '* { -webkit-tap-highlight-color: transparent !important; -webkit-touch-callout: none !important; user-select: none !important; }'; document.head.appendChild(s); })();",
+                    null
+                  );
+                }
+              });
+            }
+          }
+          EOF
+
+          npx cap sync android
+
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ApnaBazaar-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
