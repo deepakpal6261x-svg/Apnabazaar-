@@ -9,7 +9,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
         run: |
           set -e
           mkdir -p www
-          echo '<h1>ApnaBazaar</h1>' > www/index.html
+          printf '<h1>ApnaBazaar</h1>\n' > www/index.html
 
           npm init -y >/dev/null 2>&1
           npm install --no-audit --no-fund @capacitor/core @capacitor/cli @capacitor/android
@@ -57,7 +57,6 @@ jobs:
           package com.apnabazaar.app;
 
           import android.os.Bundle;
-          import android.view.View;
           import android.webkit.WebView;
           import com.getcapacitor.BridgeActivity;
 
@@ -73,11 +72,7 @@ jobs:
                   webView.setHapticFeedbackEnabled(false);
                   webView.setOnLongClickListener(v -> true);
                   webView.evaluateJavascript(
-                    "(function() {" +
-                    "  var s = document.createElement('style');" +
-                    "  s.innerHTML = '* { -webkit-tap-highlight-color: transparent !important; -webkit-touch-callout: none !important; user-select: none !important; }';" +
-                    "  document.head.appendChild(s);" +
-                    "})();",
+                    "(function() { var s = document.createElement('style'); s.innerHTML = '* { -webkit-tap-highlight-color: transparent !important; -webkit-touch-callout: none !important; user-select: none !important; }'; document.head.appendChild(s); })();",
                     null
                   );
                 }
