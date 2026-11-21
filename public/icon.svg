@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="112" fill="#15803D"/>
+  <rect x="36" y="36" width="440" height="440" rx="84" fill="#166534" fill-opacity="0.35"/>
+  <!-- Market Awning -->
+  <path d="M112 184C112 148 140 124 176 124H336C372 124 400 148 400 184V216H112V184Z" fill="#EA580C"/>
+  <path d="M112 216C112 238 130 256 152 256C174 256 192 238 192 216H112Z" fill="#FFF7ED"/>
+  <path d="M192 216C192 238 210 256 232 256C254 256 272 238 272 216H192Z" fill="#FDBA74"/>
+  <path d="M272 216C272 238 290 256 312 256C334 256 352 238 352 216H272Z" fill="#FFF7ED"/>
+  <path d="M352 216C352 238 370 256 392 256C396 256 400 254 400 216H352Z" fill="#FDBA74"/>
+  <!-- Shop Body -->
+  <rect x="136" y="256" width="240" height="132" rx="20" fill="#FFFFFF"/>
+  <!-- Basket / Voice Wave Emblem -->
+  <circle cx="256" cy="322" r="36" fill="#15803D"/>
+  <path d="M256 300V344M240 312V332M272 312V332" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round"/>
+</svg>

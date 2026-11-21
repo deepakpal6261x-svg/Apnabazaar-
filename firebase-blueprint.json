@@ -1,0 +1,170 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user profile for customers, vendors, and auto drivers.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "mobile": { "type": "string", "minLength": 10, "maxLength": 15, "pattern": "^[0-9+\\-\\s]+$" },
+        "role": { "type": "string", "enum": ["customer", "vendor", "driver"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "mobile", "role", "createdAt", "updatedAt"]
+    },
+    "MarketplaceListing": {
+      "title": "MarketplaceListing",
+      "description": "Public directory listing for local shops, auto rickshaws, sabji carts, kirana, CSC centers, salons, clinics, and showrooms.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "category": {
+          "type": "string",
+          "enum": ["auto", "sabji", "kirana", "csc", "salon", "clinic", "showroom"]
+        },
+        "nameHi": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "nameEn": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "ownerName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "areaHi": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "areaEn": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "businessPhone": { "type": "string", "minLength": 10, "maxLength": 15 },
+        "upiId": { "type": "string", "maxLength": 100 },
+        "qrImageUrl": { "type": "string", "maxLength": 450000 },
+        "isAvailable": { "type": "boolean" },
+        "isPublished": { "type": "boolean" },
+        "vehicleType": { "type": "string", "maxLength": 40 },
+        "baseFare": { "type": "number" },
+        "currentToken": { "type": "number" },
+        "waitingCount": { "type": "number" },
+        "subscriptionTier": { "type": "string", "enum": ["basic_99", "pro_299", "showroom_599"] },
+        "subscriptionStatus": { "type": "string", "enum": ["active", "pending", "expired"] },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerUid",
+        "category",
+        "nameHi",
+        "nameEn",
+        "ownerName",
+        "areaHi",
+        "areaEn",
+        "businessPhone",
+        "isAvailable",
+        "isPublished",
+        "subscriptionTier",
+        "subscriptionStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BookingRecord": {
+      "title": "BookingRecord",
+      "description": "Auto ride bookings, smart queue digital tokens (CSC/Salon/Clinic), and local shop orders.",
+      "type": "object",
+      "properties": {
+        "customerUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "customerName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "customerMobile": { "type": "string", "minLength": 10, "maxLength": 15 },
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "vendorUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "listingNameHi": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "bookingType": { "type": "string", "enum": ["auto", "queue", "order"] },
+        "summaryHi": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "tokenNumber": { "type": "string", "maxLength": 30 },
+        "slotTime": { "type": "string", "maxLength": 40 },
+        "pickup": { "type": "string", "maxLength": 150 },
+        "drop": { "type": "string", "maxLength": 150 },
+        "deliveryMode": { "type": "string", "enum": ["delivery", "pickup", "onsite"] },
+        "paymentMethod": { "type": "string", "enum": ["upi", "cash"] },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["confirmed", "in_progress", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "customerUid",
+        "customerName",
+        "customerMobile",
+        "listingId",
+        "vendorUid",
+        "listingNameHi",
+        "bookingType",
+        "summaryHi",
+        "deliveryMode",
+        "paymentMethod",
+        "totalAmount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SubscriptionPayment": {
+      "title": "SubscriptionPayment",
+      "description": "Monthly UPI subscription proofs submitted by vendors and auto drivers to Super Admin.",
+      "type": "object",
+      "properties": {
+        "vendorUid": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "listingId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "vendorName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "vendorMobile": { "type": "string", "minLength": 10, "maxLength": 15 },
+        "planId": { "type": "string", "enum": ["basic_99", "pro_299", "showroom_599"] },
+        "amount": { "type": "number" },
+        "utrNumber": { "type": "string", "minLength": 4, "maxLength": 64 },
+        "screenshotUrl": { "type": "string", "maxLength": 450000 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "vendorUid",
+        "listingId",
+        "vendorName",
+        "vendorMobile",
+        "planId",
+        "amount",
+        "utrNumber",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminUpiConfig": {
+      "title": "AdminUpiConfig",
+      "description": "Super Admin UPI ID and QR code image for vendor monthly subscription payments.",
+      "type": "object",
+      "properties": {
+        "adminName": { "type": "string", "minLength": 1, "maxLength": 100 },
+        "upiId": { "type": "string", "minLength": 3, "maxLength": 100 },
+        "qrImageUrl": { "type": "string", "maxLength": 450000 },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["adminName", "upiId", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user accounts and roles."
+    },
+    "/listings/{listingId}": {
+      "schema": { "$ref": "#/entities/MarketplaceListing" },
+      "description": "Public local marketplace shops, auto rickshaws, and services."
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/BookingRecord" },
+      "description": "Customer auto rides, smart queue tokens, and product orders."
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": { "$ref": "#/entities/SubscriptionPayment" },
+      "description": "Monthly UPI subscription submissions awaiting Super Admin approval."
+    },
+    "/platformConfig/{configId}": {
+      "schema": { "$ref": "#/entities/AdminUpiConfig" },
+      "description": "Super Admin UPI QR settings (doc id: admin_upi)."
+    }
+  }
+}

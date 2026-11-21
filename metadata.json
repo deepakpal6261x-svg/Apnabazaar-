@@ -1,0 +1,6 @@
+{
+  "name": "ApnaBazaar - अपना बाज़ार",
+  "description": "आपका अपना स्थानीय बाज़ार PWA — बोलकर खोजें, ऑटो रिक्शा बुक करें, सब्जी-किराना मंगाएं, CSC/सैलून/क्लिनिक का लाइव टोकन पाएं और सीधा UPI पेमेंट करें।",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}
