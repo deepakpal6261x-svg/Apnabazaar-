@@ -10,6 +10,7 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,6 +28,7 @@ jobs:
 
       - name: Setup Android SDK & Build Tools
         run: |
+          set -e
           ANDROID_SDK_ROOT="$HOME/android-sdk"
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
           curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
@@ -45,6 +47,7 @@ jobs:
 
       - name: Prepare Bubblewrap TWA project
         run: |
+          set -e
           mkdir -p twa "$HOME/.bubblewrap"
           cat << EOF > "$HOME/.bubblewrap/config.json"
           {
@@ -109,12 +112,13 @@ jobs:
             -dname "CN=ApnaBazaar, OU=App, O=ApnaBazaar, L=India, S=India, C=IN"
 
           cd twa
-          printf "n\n%s\n%s\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
+          yes "" | npx --yes @bubblewrap/cli update --skipPwaValidation || true
 
       - name: Build Android APK
         run: |
+          set -e
           cd twa
-          printf "n\n%s\n%s\napnabazaar123\napnabazaar123\n" "$JAVA_HOME" "$ANDROID_SDK_ROOT" | npx --yes @bubblewrap/cli build --skipPwaValidation
+          yes "" | npx --yes @bubblewrap/cli build --skipPwaValidation
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
